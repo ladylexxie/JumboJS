@@ -3,6 +3,7 @@ package ladylexxie.jumbojs;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import dev.latvian.mods.kubejs.platform.forge.ingredient.IngredientStackImpl;
 import dev.latvian.mods.kubejs.recipe.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -19,6 +20,10 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 		result = parseItemOutput(args.get(0));
 		inputs = parseItemInputList(args.get(1));
 		if( args.size() >= 3 ) xp(args.getFloat(2, 0f));
+		for( Ingredient ingredient : inputs ) {
+			int count = ((IngredientStackImpl) ingredient).getCount();
+			System.out.println("===TEST=== " + count);
+		}
 	}
 
 	public JumboFurnaceRecipeJS xp( float xp ) {
@@ -41,7 +46,8 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 				int count = ingredient.getItems()[0].getCount();
 				JsonObject jsonObject = ingredient.toJson().getAsJsonObject();
 				jsonObject.addProperty("count", count);
-				array.add(jsonObject.);
+				//				System.out.println("===TEST=== " + count);
+				array.add(jsonObject);
 			}
 			json.add("ingredients", array);
 		}
