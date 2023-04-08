@@ -1,0 +1,36 @@
+modLoader = "javafml"
+loaderVersion = "[43,)"
+license = "All Rights Reserved"
+[[mods]]
+modId = "jumbojs"
+version = "${file.jarVersion}"
+displayName = "JumboJS"
+authors = "Lady Lexxie"
+
+description = '''
+A KubeJS Plugin for the Jumbo Furnace mod.
+'''
+[[dependencies.jumbojs]]
+modId = "forge"
+mandatory = true
+versionRange = "[43,)"
+ordering = "NONE"
+side = "BOTH"
+[[dependencies.jumbojs]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.19.2,1.19.3)"
+ordering = "NONE"
+side = "BOTH"
+[[dependencies.jumbojs]]
+modId = "kubejs"
+mandatory = true
+versionRange = "[$kubejs_version,)"
+ordering = "NONE"
+side = "BOTH"
+[[dependencies.jumbojs]]
+modId = "jumbofurnace"
+mandatory = true
+versionRange = "[1.19.2-3.0.0.0,)"
+ordering = "NONE"
+side = "BOTH"
