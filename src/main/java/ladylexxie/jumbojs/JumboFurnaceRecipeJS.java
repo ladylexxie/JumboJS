@@ -3,14 +3,12 @@ package ladylexxie.jumbojs;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import commoble.jumbofurnace.recipes.JumboFurnaceRecipeSerializer;
 import dev.latvian.mods.kubejs.platform.forge.ingredient.IngredientStackImpl;
 import dev.latvian.mods.kubejs.recipe.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class JumboFurnaceRecipeJS extends RecipeJS {
@@ -41,13 +39,12 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 //		inputs = parseItemInputList(json.get("ingredients"));
 		List<Ingredient> ingredients = new ArrayList<>();
 		JsonArray array = json.get("ingredients").getAsJsonArray();
-//		for(JsonElement element : array) {
-//			IngredientStackImpl ingredientStack = (IngredientStackImpl) parseItemInput(element);
-//			if(element.getAsJsonObject().has("count")) ingredientStack.kjs$withCount(element.getAsJsonObject().get("count").getAsInt());
-//			ingredients.add(ingredientStack);
-//		}
+		for(JsonElement element : array) {
+			IngredientStackImpl ingredientStack = (IngredientStackImpl) parseItemInput(element);
+			if(element.getAsJsonObject().has("count")) ingredientStack.kjs$withCount(element.getAsJsonObject().get("count").getAsInt());
+			ingredients.add(ingredientStack);
+		}
 		inputs = ingredients;
-		inputs = JumboFurnaceRecipeSerializer.readIngredients(array);
 	}
 
 	@Override
@@ -60,6 +57,7 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 				jsonObject.addProperty("count", count);
 				array.add(jsonObject);
 			}
+			System.out.println("===TEST=== " + array);
 			json.add("ingredients", array);
 		}
 		if( serializeOutputs ) {
