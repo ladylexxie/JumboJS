@@ -7,17 +7,13 @@ import dev.latvian.mods.kubejs.item.ingredient.IngredientJS;
 import dev.latvian.mods.kubejs.item.ingredient.IngredientStack;
 import dev.latvian.mods.kubejs.platform.forge.ingredient.IngredientStackImpl;
 import dev.latvian.mods.kubejs.recipe.*;
-import dev.latvian.mods.kubejs.util.MapJS;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class JumboFurnaceRecipeJS extends RecipeJS {
-//	public static final Logger LOG = LogManager.getLogger();
 	public List<IngredientStackImpl> inputs;
 	public ItemStack result;
 	public float xp;
@@ -26,12 +22,16 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 	public JsonElement serializeIngredientStack( IngredientStack in ) {
 		JsonElement o = in.getIngredient().toJson();
 		if( o.isJsonObject() ) {
+			// Basically if the ingredient is an IngredientStackJS
+			// the format will be {type: "kubejs:stack", ingredient: {item: "minecraft:stone"}, count: 5}}
+			// The problem is that JumboFurnaceRecipe doesn't know how to handle the "kubejs:stack" type
+			// So instead, we just replace the type with "forge:nbt", add the count, and move the ingredient object up a level
+			// So the final format will be {type: "forge:nbt", count: 5, item: "minecraft:stone"}
 			JsonObject obj = o.getAsJsonObject();
 			while(obj.has("type")
 					&& obj.get("type").isJsonPrimitive()
 					&& obj.getAsJsonPrimitive("type").isString()
 					&& obj.getAsJsonPrimitive("type").getAsString().equalsIgnoreCase("kubejs:stack")){
-//				LOG.info("Unwrapped double ingredient stack: {}", obj);
 				obj = obj.getAsJsonObject("ingredient");
 			}
 			obj.addProperty("type", "forge:nbt");
@@ -90,7 +90,6 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 			JsonArray array = new JsonArray();
 			for( IngredientStackImpl ingredient : inputs ) {
 				final JsonElement serialize = serializeIngredientStack(ingredient);
-//				LOG.info("Serialized JumboFurnaceRecipeJS ingredient from {}x{} to {}", ingredient.getIngredient(), ingredient.getCount(), serialize);
 				array.add(serialize);
 			}
 			json.add("ingredients", array);
@@ -98,8 +97,6 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 		if( serializeOutputs ) {
 			json.add("result", itemToJson(result));
 		}
-
-//		LOG.info("Serialized JumboFurnaceRecipeJS JSON: {}", json);
 	}
 
 	@Override
