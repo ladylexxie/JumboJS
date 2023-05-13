@@ -14,39 +14,52 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JumboFurnaceRecipeJS extends RecipeJS {
-	public List<Ingredient> inputs;
+	public List<IngredientStackImpl> inputs;
 	public ItemStack result;
 	public float xp;
 
 	@Override
 	public JsonElement serializeIngredientStack( IngredientStack in ) {
-		if( in.getCount() == 1 ) return in.getIngredient().toJson();
-		JsonObject o = (JsonObject) in.getIngredient().toJson();
-		o.addProperty("count", in.getCount());
+		JsonElement o = in.getIngredient().toJson();
+		if( o.isJsonObject() ) {
+			// Basically if the ingredient is an IngredientStackJS
+			// the format will be {type: "kubejs:stack", ingredient: {item: "minecraft:stone"}, count: 5}}
+			// The problem is that JumboFurnaceRecipe doesn't know how to handle the "kubejs:stack" type
+			// So instead, we just replace the type with "forge:nbt", add the count, and move the ingredient object up a level
+			// So the final format will be {type: "forge:nbt", count: 5, item: "minecraft:stone"}
+			JsonObject obj = o.getAsJsonObject();
+			while(obj.has("type")
+					&& obj.get("type").isJsonPrimitive()
+					&& obj.getAsJsonPrimitive("type").isString()
+					&& obj.getAsJsonPrimitive("type").getAsString().equalsIgnoreCase("kubejs:stack")){
+				obj = obj.getAsJsonObject("ingredient");
+			}
+			obj.addProperty("type", "forge:nbt");
+			obj.addProperty("count", in.getCount());
+			return obj;
+		}
 		return o;
 	}
 
-	public List<Ingredient> parseIngredientsJumbo( Object o ) {
-		List<Ingredient> inputs = new ArrayList<>();
-		//		if(jsonArray.isJsonArray()){
-		//			jsonArray.forEach(jsonElement -> {
-		//				if(jsonElement.isJsonObject()){
-		//					IngredientStack ingredientStack = new IngredientStackImpl(
-		//							IngredientJS.ofJson(jsonElement.getAsJsonObject().get("ingredient")),
-		//							jsonElement.getAsJsonObject()jsonElement.getAsJsonObject().has("count") ? jsonElement.getAsJsonObject().get("count").getAsInt() : 1
-		//					);
-		//					inputs.add(ingredientStack);
-		//				}
-		//			});
-		//		}
+	public List<IngredientStackImpl> parseIngredientsJumbo( Object o ) {
+		if(o == null) return new ArrayList<>();
 
-		if(o instanceof JsonArray jsonArray){
-			jsonArray.forEach(json -> {
-				inputs.add(parseItemInput(json));
-				System.out.println("===TEST=== " + json);
-			});
+		List<IngredientStackImpl> inputs = new ArrayList<>();
+		if (o instanceof IngredientStackImpl ingredientStack){
+			inputs.add(ingredientStack);
+		} else if(o instanceof Ingredient ingredient){
+			inputs.add(new IngredientStackImpl(ingredient,1));
+		} else if (o instanceof Iterable<?> iterable){
+			iterable.forEach(object -> inputs.addAll(parseIngredientsJumbo(object)));
+		} else {
+			Ingredient ingredient = IngredientJS.of(o);
+			if(ingredient == null) return inputs;
+			if (ingredient instanceof IngredientStack stack) {
+				inputs.add((IngredientStackImpl) stack);
+			}else {
+				inputs.add(new IngredientStackImpl(ingredient, 1));
+			}
 		}
-
 		return inputs;
 	}
 
@@ -66,21 +79,18 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 	@Override
 	public void deserialize() {
 		result = parseItemOutput(json.get("result"));
-		inputs = parseIngredientsJumbo(json.get("ingredients").getAsJsonArray());
-		//		inputs = new ArrayList<>();
-		//		JsonArray array = json.get("ingredients").getAsJsonArray();
-		//		for(JsonElement element : array) {
-		//			Ingredient ingredientJS = IngredientJS.ofJson(element);
-		//			inputs.add(ingredientJS);
-		//		}
+		inputs = parseIngredientsJumbo(json.get("ingredients"));
+		if(json.has("experience"))
+			xp = json.get("experience").getAsFloat();
 	}
 
 	@Override
 	public void serialize() {
 		if( serializeInputs ) {
 			JsonArray array = new JsonArray();
-			for( Ingredient ingredient : inputs ) {
-				array.add(serializeIngredientStack((IngredientStackImpl) ingredient));
+			for( IngredientStackImpl ingredient : inputs ) {
+				final JsonElement serialize = serializeIngredientStack(ingredient);
+				array.add(serialize);
 			}
 			json.add("ingredients", array);
 		}
@@ -91,8 +101,8 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 
 	@Override
 	public boolean hasInput( IngredientMatch match ) {
-		for( Ingredient ingredient : inputs ) {
-			if( match.contains(ingredient) ) return true;
+		for( IngredientStack ingredient : inputs ) {
+			if( match.contains(ingredient.getIngredient()) ) return true;
 		}
 		return false;
 	}
@@ -102,9 +112,14 @@ public class JumboFurnaceRecipeJS extends RecipeJS {
 		boolean changed = false;
 
 		for( int i = 0; i < inputs.size(); i++ ) {
-			Ingredient ingredient = inputs.get(i);
-			if( match.contains(ingredient) ) {
-				inputs.set(i, transformer.transform(this, match, ingredient, with));
+			IngredientStackImpl ingredient = inputs.get(i);
+			if( match.contains(ingredient.getIngredient()) ) {
+				final Ingredient transformed = transformer.transform(this, match, ingredient, with);
+				if( with instanceof IngredientStackImpl withStack) {
+					inputs.set(i, new IngredientStackImpl(transformed, withStack.getCount()));
+				} else {
+					inputs.set(i, new IngredientStackImpl(transformed, 1));
+				}
 				changed = true;
 			}
 		}
